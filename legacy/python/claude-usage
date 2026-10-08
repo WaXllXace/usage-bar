@@ -1,0 +1,7 @@
+#!/bin/zsh
+# Thin launcher so you don't have to remember the venv path.
+#   claude-usage            -> menu-bar app
+#   claude-usage --login    -> one-time personal OAuth login
+#   claude-usage --print    -> print usage once
+DIR="${0:A:h}"
+exec "$DIR/.venv/bin/python" "$DIR/tracker.py" "$@"

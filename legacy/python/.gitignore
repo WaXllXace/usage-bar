@@ -1,0 +1,5 @@
+creds.json
+creds.json.tmp
+.venv/
+tracker.log
+__pycache__/

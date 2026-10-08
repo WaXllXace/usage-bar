@@ -1,0 +1,10 @@
+.build/
+*.app/
+AppIcon.iconset/
+AppIcon.icns
+.DS_Store
+*.log
+.venv/
+__pycache__/
+legacy/rust/target/
+build/
