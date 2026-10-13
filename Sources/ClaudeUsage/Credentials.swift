@@ -123,7 +123,7 @@ enum CredentialStore {
         let r = try Shell.run("/usr/bin/security",
                               ["add-generic-password", "-U", "-a", user, "-s", service, "-w", json])
         guard r.status == 0 else {
-            NSLog("keychain write failed (\(r.status)): \(r.err)")
+            Log.write("keychain write failed (\(r.status)): \(r.err)")
             throw CredError.keychain(r.err.trimmingCharacters(in: .whitespacesAndNewlines))
         }
     }
@@ -153,16 +153,23 @@ enum CredentialStore {
             req.setValue(UsageClient.userAgent, forHTTPHeaderField: "User-Agent")
             let (data, resp): (Data, URLResponse)
             do { (data, resp) = try await URLSession.shared.data(for: req) }
-            catch { lastErr = error.localizedDescription; NSLog("refresh: \(ep) network error: \(lastErr)"); continue }
-            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-            NSLog("refresh: \(ep) -> HTTP \(code)")
-            if code == 404 || code == 405 { lastErr = "HTTP \(code) at \(ep)"; continue }
+            catch { lastErr = error.localizedDescription; Log.write("refresh: \(ep) network error: \(lastErr)"); continue }
+            let http = resp as? HTTPURLResponse
+            let code = http?.statusCode ?? 0
+            Log.write("refresh: \(ep) -> HTTP \(code)")
+            if code != 200 {
+                let retry = http?.value(forHTTPHeaderField: "Retry-After") ?? "-"
+                let ctype = http?.value(forHTTPHeaderField: "content-type") ?? "-"
+                let body = String(decoding: data.prefix(300), as: UTF8.self).replacingOccurrences(of: "\n", with: " ")
+                Log.write("refresh: retry-after=\(retry) content-type=\(ctype) body=\(body)")
+            }
+            if code == 404 || code == 405 || code == 429 || code >= 500 { lastErr = "HTTP \(code) at \(ep)"; continue }
             guard let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 throw CredError.refreshFailed("HTTP \(code), non-JSON reply")
             }
             guard code == 200, let access = j["access_token"] as? String else {
                 let msg = (j["error_description"] as? String) ?? (j["error"] as? String) ?? "HTTP \(code)"
-                NSLog("refresh: rejected: \(msg)")
+                Log.write("refresh: rejected: \(msg)")
                 throw CredError.refreshFailed(msg)
             }
             var root = creds.root
@@ -192,14 +199,14 @@ enum CredentialStore {
                 return Credential(token: creds.accessToken, source: .keychain(service: service), oauth: creds)
             }
             guard allowRefresh else { throw CredError.expired }
-            NSLog("cred[\(profile.id)]: token expired, refreshing")
+            Log.write("cred[\(profile.id)]: token expired, refreshing")
             do {
                 let fresh = try await refresh(creds)
                 try writeKeychain(service: service, root: fresh.root)
-                NSLog("cred[\(profile.id)]: refreshed and written back")
+                Log.write("cred[\(profile.id)]: refreshed and written back")
                 creds = fresh
             } catch {
-                NSLog("cred[\(profile.id)]: refresh failed: \(error.localizedDescription)")
+                Log.write("cred[\(profile.id)]: refresh failed: \(error.localizedDescription)")
                 // Maybe the CLI refreshed concurrently and rotated the token: re-read once.
                 if let again = try readKeychain(service: service), again.isFresh {
                     creds = again

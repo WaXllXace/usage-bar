@@ -15,7 +15,7 @@ enum UsageError: LocalizedError {
 }
 
 enum UsageClient {
-    static let userAgent = "claude-code/2.1.14"
+    static let userAgent = "claude-cli/2.1.14 (external, cli)"
     static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     static let messagesURL = URL(string: "https://api.anthropic.com/v1/messages")!
     static let probeModel = "claude-haiku-4-5-20251001"
