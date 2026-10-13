@@ -84,8 +84,9 @@ enum UsageClient {
             else { util = nil }
             guard let util else { continue }
             let reset = (d["resets_at"] as? String).flatMap(parseISO)
+            let status = (d["status"] as? String) ?? (d["locked_reason"] as? String)
             buckets.append(Bucket(key: key, label: Bucket.label(for: key), percent: util,
-                                  resetsAt: reset, status: d["status"] as? String))
+                                  resetsAt: reset, status: status))
         }
         buckets.sort { (order.firstIndex(of: $0.key) ?? 99, $0.key) < (order.firstIndex(of: $1.key) ?? 99, $1.key) }
         return buckets
