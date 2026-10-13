@@ -91,6 +91,7 @@ final class Store: ObservableObject {
             let snap = try await UsageClient.fetch(profile: p, allowRefresh: allow)
             states[p.id] = .ok(snap)
         } catch {
+            NSLog("fetch[\(p.id)] failed: \(error.localizedDescription)")
             states[p.id] = .error(error.localizedDescription, last: last)
         }
         redraw()
