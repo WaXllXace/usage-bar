@@ -24,7 +24,7 @@ personal Claude account, a shared Codex account, and so on.
 Requires macOS 14 (Sonoma) or newer.
 
 1. Download `UsageBar-<version>.zip` from the latest
-   [release](../../releases), unzip, move **Usage Bar.app** to `~/Applications`
+   [release](https://github.com/WaXllXace/usage-bar/releases), unzip, move **Usage Bar.app** to `~/Applications`
    (or `/Applications`).
 2. The app is not notarized. The first time, **right-click → Open** and confirm
    (or allow it in System Settings › Privacy & Security). Only needed once.
@@ -39,7 +39,7 @@ what is wrong (usually “sign in with `claude` / `codex` first”).
 ### Build from source
 
 ```sh
-git clone <this repo> && cd usage-bar
+git clone git@github.com:WaXllXace/usage-bar.git && cd usage-bar
 scripts/bundle.sh     # swift build -c release → build/Usage Bar.app
 scripts/install.sh    # copies to ~/Applications and launches it
 ```
