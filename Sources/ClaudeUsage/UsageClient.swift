@@ -89,6 +89,27 @@ enum UsageClient {
                                   resetsAt: reset, status: status))
         }
         buckets.sort { (order.firstIndex(of: $0.key) ?? 99, $0.key) < (order.firstIndex(of: $1.key) ?? 99, $1.key) }
+
+        // Model/surface-scoped weekly limits (e.g. "Fable") live in `limits`:
+        // {"kind":"weekly_scoped","percent":23,"severity":"normal","resets_at":…,
+        //  "scope":{"model":{"display_name":"Fable"},"surface":null}}
+        if let limits = j["limits"] as? [[String: Any]] {
+            for l in limits {
+                guard let kind = l["kind"] as? String, kind != "session", kind != "weekly_all",
+                      let pct = l["percent"] as? Double else { continue }
+                let scope = l["scope"] as? [String: Any]
+                let model = (scope?["model"] as? [String: Any])?["display_name"] as? String
+                let surface = (scope?["surface"] as? [String: Any])?["display_name"] as? String
+                    ?? scope?["surface"] as? String
+                let name = model ?? surface ?? kind.replacingOccurrences(of: "_", with: " ")
+                let key = "\(kind):\(name)"
+                guard !buckets.contains(where: { $0.key == key }) else { continue }
+                let severity = l["severity"] as? String
+                buckets.append(Bucket(key: key, label: "Weekly · \(name)", percent: pct,
+                                      resetsAt: (l["resets_at"] as? String).flatMap(parseISO),
+                                      status: severity == nil || severity == "normal" ? nil : severity))
+            }
+        }
         return buckets
     }
 

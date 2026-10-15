@@ -93,6 +93,11 @@ enum CredentialStore {
         "https://console.anthropic.com/v1/oauth/token",
     ]
 
+    /// Refresh tokens the server has rejected with invalid_grant. Retrying them
+    /// every tick is pointless; wait until the Keychain item changes (re-login).
+    private static var deadRefreshTokens = Set<String>()
+    private static let deadLock = NSLock()
+
     static func keychainService(for configDir: String) -> String {
         let home = NSHomeDirectory()
         let norm = (configDir as NSString).standardizingPath
@@ -199,6 +204,10 @@ enum CredentialStore {
                 return Credential(token: creds.accessToken, source: .keychain(service: service), oauth: creds)
             }
             guard allowRefresh else { throw CredError.expired }
+            if let rt = creds.refreshToken {
+                deadLock.lock(); let dead = deadRefreshTokens.contains(rt); deadLock.unlock()
+                if dead { throw CredError.refreshFailed("refresh token expired — run `claude` with this profile and /login") }
+            }
             Log.write("cred[\(profile.id)]: token expired, refreshing")
             do {
                 let fresh = try await refresh(creds)
@@ -207,6 +216,10 @@ enum CredentialStore {
                 creds = fresh
             } catch {
                 Log.write("cred[\(profile.id)]: refresh failed: \(error.localizedDescription)")
+                if case CredError.refreshFailed(let m) = error, m.localizedCaseInsensitiveContains("expired"),
+                   let rt = creds.refreshToken {
+                    deadLock.lock(); deadRefreshTokens.insert(rt); deadLock.unlock()
+                }
                 // Maybe the CLI refreshed concurrently and rotated the token: re-read once.
                 if let again = try readKeychain(service: service), again.isFresh {
                     creds = again

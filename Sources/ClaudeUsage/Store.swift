@@ -126,8 +126,8 @@ final class Store: ObservableObject {
                        resetsAt: now.addingTimeInterval(Double(i + 1) * 4_120), status: "allowed"),
                 Bucket(key: "seven_day", label: Bucket.label(for: "seven_day"), percent: base * 0.6 + 8,
                        resetsAt: now.addingTimeInterval(86_400 * 2.3), status: "allowed"),
-                Bucket(key: "seven_day_opus", label: Bucket.label(for: "seven_day_opus"), percent: i == 0 ? 41 : 88,
-                       resetsAt: now.addingTimeInterval(86_400 * 2.3), status: "allowed"),
+                Bucket(key: "weekly_scoped:Fable", label: "Weekly · Fable", percent: i == 0 ? 41 : 88,
+                       resetsAt: now.addingTimeInterval(86_400 * 2.3), status: nil),
             ], fetchedAt: now, plan: i == 0 ? "team" : "max", source: .api)
             states[p.id] = .ok(snap)
         }
