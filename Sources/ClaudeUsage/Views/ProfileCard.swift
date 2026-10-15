@@ -121,6 +121,15 @@ struct ProfileCard: View {
                 if snap.weekly.isEmpty && snap.session == nil {
                     Text("No active limits").font(.system(size: 12)).foregroundStyle(.secondary)
                 }
+                if snap.weekly.isEmpty, let s = snap.session {
+                    statRow("Limit window", s.label)
+                    if let r = s.resetsAt {
+                        TimelineView(.periodic(from: .now, by: 30)) { ctx in
+                            statRow("Resets", Fmt.clock(r, now: ctx.date))
+                        }
+                    }
+                    if let st = s.status { statRow("Status", st, tint: .red) }
+                }
                 ForEach(snap.weekly) { b in
                     LevelBar(bucket: b, accent: profile.accent)
                 }
@@ -135,6 +144,16 @@ struct ProfileCard: View {
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    private func statRow(_ label: String, _ value: String, tint: Color = .primary) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+            Spacer()
+            Text(value).font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundStyle(tint)
+        }
+        .padding(.vertical, 5).padding(.horizontal, 10)
+        .background(profile.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var loadingRows: some View {
