@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Build and zip the app for a GitHub Release: build/UsageBar-<version>.zip
-set -e
+set -e -o pipefail
 ROOT="${0:A:h:h}"
 VERSION="${VERSION:-$(cat "$ROOT/VERSION" 2>/dev/null || echo 1.0.0)}"
 export VERSION

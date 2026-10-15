@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Build the release binary and assemble "Usage Bar.app" in build/.
-set -e
+set -e -o pipefail
 ROOT="${0:A:h:h}"
 cd "$ROOT"
 VERSION="${VERSION:-$(cat "$ROOT/VERSION" 2>/dev/null || echo 1.0.0)}"
