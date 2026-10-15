@@ -51,17 +51,20 @@ struct ProfileCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
                     Text(profile.name).font(.system(size: 14, weight: .semibold))
+                    badge(profile.provider.title, tint: .secondary)
                     if let plan = Fmt.plan(state.snapshot?.plan) {
-                        Text(plan)
-                            .font(.system(size: 9, weight: .bold))
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(profile.accent.opacity(0.16), in: Capsule())
-                            .foregroundStyle(profile.accent)
+                        badge(plan, tint: profile.accent)
                     }
                 }
-                Text(profile.displayDir)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 4) {
+                    Text(profile.displayDir)
+                    if let acct = state.snapshot?.account {
+                        Text("·")
+                        Text(acct).lineLimit(1).truncationMode(.middle)
+                    }
+                }
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.tertiary)
             }
             Spacer()
             if state.isLoading {
@@ -78,13 +81,21 @@ struct ProfileCard: View {
         }
     }
 
+    private func badge(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .bold))
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(tint.opacity(0.14), in: Capsule())
+            .foregroundStyle(tint)
+    }
+
     // MARK: Body
 
     private func content(_ snap: Snapshot) -> some View {
         HStack(alignment: .center, spacing: 16) {
             if let s = snap.session {
                 VStack(spacing: 6) {
-                    RingGauge(percent: s.percent, accent: profile.accent, caption: "5h")
+                    RingGauge(percent: s.percent, accent: profile.accent, caption: snap.ringCaption)
                     if let r = s.resetsAt {
                         TimelineView(.periodic(from: .now, by: 30)) { ctx in
                             VStack(spacing: 0) {
@@ -112,6 +123,14 @@ struct ProfileCard: View {
                 }
                 ForEach(snap.weekly) { b in
                     LevelBar(bucket: b, accent: profile.accent)
+                }
+                if let extra = snap.extra {
+                    HStack(spacing: 4) {
+                        Image(systemName: "creditcard").font(.system(size: 9))
+                        Text(extra)
+                    }
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity)

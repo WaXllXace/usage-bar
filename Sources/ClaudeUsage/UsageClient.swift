@@ -21,6 +21,7 @@ enum UsageClient {
     static let probeModel = "claude-haiku-4-5-20251001"
 
     static func fetch(profile: Profile, allowRefresh: Bool) async throws -> Snapshot {
+        if profile.provider == .codex { return try await CodexClient.fetch(profile: profile) }
         let cred = try await CredentialStore.credential(for: profile, allowRefresh: allowRefresh)
         let plan = cred.oauth?.subscriptionType
 

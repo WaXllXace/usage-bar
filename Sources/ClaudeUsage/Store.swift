@@ -31,8 +31,13 @@ final class Store: ObservableObject {
         self.profiles = profiles
         self.demo = demo
         refreshMinutes = max(1, defaults.object(forKey: "refreshMinutes") as? Int ?? 5)
-        let savedEnabled = defaults.stringArray(forKey: "enabledProfiles")
-        enabled = Set(savedEnabled ?? profiles.map(\.id))
+        // Profiles added since the last run start enabled, even if the user
+        // had customised the enabled set before.
+        let known = Set(defaults.stringArray(forKey: "knownProfiles") ?? [])
+        var en = Set(defaults.stringArray(forKey: "enabledProfiles") ?? profiles.map(\.id))
+        for p in profiles where !known.contains(p.id) { en.insert(p.id) }
+        enabled = en
+        defaults.set(profiles.map(\.id), forKey: "knownProfiles")
         menuBarMode = MenuBarMode(rawValue: defaults.string(forKey: "menuBarMode") ?? "") ?? .rings
         autoRefreshTokens = defaults.object(forKey: "autoRefreshTokens") as? Bool ?? true
         for p in profiles { states[p.id] = .idle }
@@ -120,6 +125,14 @@ final class Store: ObservableObject {
     private func loadDemo() {
         let now = Date()
         for (i, p) in profiles.enumerated() {
+            if p.provider == .codex {
+                states[p.id] = .ok(Snapshot(buckets: [
+                    Bucket(key: "five_hour", label: "Weekly", percent: 59,
+                           resetsAt: now.addingTimeInterval(444_808), status: nil),
+                ], fetchedAt: now, plan: "pro", source: .api,
+                   account: "engineer_dev@example.com", extra: "credits: 62,500"))
+                continue
+            }
             let base = i == 0 ? 23.0 : 67.0
             let snap = Snapshot(buckets: [
                 Bucket(key: "five_hour", label: Bucket.label(for: "five_hour"), percent: base,

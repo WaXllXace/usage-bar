@@ -2,7 +2,8 @@
 
 Native macOS menu-bar app (SwiftUI, no webview) showing the rate-limit state of
 **every Claude Code login on this Mac** — by default the work profile
-(`~/.claude`) and the personal one (`~/.claude-personal`).
+(`~/.claude`) and the personal one (`~/.claude-personal`) — plus the
+**OpenAI Codex CLI** login in `~/.codex`.
 
 - Menu bar: one mini ring per profile (arc = 5-hour session usage, tinted by the
   profile colour, red when ≥ 80 %) plus the percentage.
@@ -38,6 +39,15 @@ Keychain ACL prompt appears. Turn this off with ⚙︎ → *Auto-refresh expired
 tokens*; the app then shows "Token expired" until you run `claude` with that
 profile.
 
+### Codex CLI
+
+`~/.codex/auth.json` holds a ChatGPT-login access token (a ~10-day JWT that the
+Codex CLI refreshes itself on every run). The app reads it and calls
+`GET https://chatgpt.com/backend-api/wham/usage` with the `ChatGPT-Account-Id`
+header, showing `rate_limit.primary_window` / `secondary_window`, the plan,
+the account email and the credit balance. The app never refreshes this token;
+when it has expired the card says so and running `codex` once fixes it.
+
 ## Build & install
 
 ```sh
@@ -57,9 +67,12 @@ Create `~/.config/claude-usage/profiles.json`:
 ```json
 [
   {"id": "work",     "name": "Work",     "configDir": "~/.claude",          "accent": "#4F7CF0"},
-  {"id": "personal", "name": "Personal", "configDir": "~/.claude-personal", "accent": "#D97757"}
+  {"id": "personal", "name": "Personal", "configDir": "~/.claude-personal", "accent": "#D97757"},
+  {"id": "codex", "name": "Engineer Shared", "configDir": "~/.codex", "accent": "#10A37F", "provider": "codex"}
 ]
 ```
+
+`provider` is `claude` (default) or `codex`.
 
 ## Layout
 
@@ -69,6 +82,7 @@ Sources/ClaudeUsage/
   Store.swift          state, timer, settings (UserDefaults), menu-bar image
   Credentials.swift    Keychain via `security`, OAuth refresh, token-file fallback
   UsageClient.swift    /api/oauth/usage + probe-header fallback
+  CodexClient.swift    ~/.codex/auth.json + chatgpt.com wham/usage
   MenuBarLabel.swift   NSImage renderer for the status item
   Views/               PopoverView, ProfileCard, Gauges (ring, bar, shimmer)
 legacy/rust, legacy/python   earlier single-profile trackers (kept for reference)

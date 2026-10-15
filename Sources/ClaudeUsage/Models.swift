@@ -4,11 +4,17 @@ import SwiftUI
 
 /// One Claude Code login (a CLAUDE_CONFIG_DIR). Credentials live in the macOS
 /// Keychain under a service name derived from the config dir.
+enum Provider: String, Hashable {
+    case claude, codex
+    var title: String { self == .claude ? "Claude" : "Codex" }
+}
+
 struct Profile: Identifiable, Hashable {
     let id: String
     var name: String
     var configDir: String
     var accent: Color
+    var provider: Provider = .claude
 
     var displayDir: String {
         let home = NSHomeDirectory()
@@ -22,10 +28,12 @@ struct Profile: Identifiable, Hashable {
                 accent: Color(red: 0.31, green: 0.49, blue: 0.94)),
         Profile(id: "personal", name: "Personal", configDir: NSHomeDirectory() + "/.claude-personal",
                 accent: Color(red: 0.85, green: 0.47, blue: 0.34)),
+        Profile(id: "codex", name: "Engineer Shared", configDir: NSHomeDirectory() + "/.codex",
+                accent: Color(red: 0.06, green: 0.64, blue: 0.50), provider: .codex),
     ]
 
     /// Optional override: ~/.config/claude-usage/profiles.json
-    /// [{"id":"work","name":"Work","configDir":"~/.claude","accent":"#4F7CF0"}, ...]
+    /// [{"id":"work","name":"Work","configDir":"~/.claude","accent":"#4F7CF0","provider":"claude"}, ...]
     static func load() -> [Profile] {
         let path = NSHomeDirectory() + "/.config/claude-usage/profiles.json"
         guard let data = FileManager.default.contents(atPath: path),
@@ -36,7 +44,8 @@ struct Profile: Identifiable, Hashable {
                   let dir = d["configDir"] as? String else { return nil }
             let expanded = (dir as NSString).expandingTildeInPath
             let accent = (d["accent"] as? String).flatMap(Color.init(hex:)) ?? .accentColor
-            return Profile(id: id, name: name, configDir: expanded, accent: accent)
+            let provider = (d["provider"] as? String).flatMap(Provider.init(rawValue:)) ?? .claude
+            return Profile(id: id, name: name, configDir: expanded, accent: accent, provider: provider)
         }
     }
 }
@@ -71,12 +80,23 @@ struct Snapshot: Equatable {
     var fetchedAt: Date
     var plan: String?
     var source: Source
+    var account: String? = nil
+    var extra: String? = nil
 
     enum Source: String { case api = "usage API", probe = "probe headers" }
 
     var session: Bucket? { buckets.first { $0.isSession } }
     var weekly: [Bucket] { buckets.filter { !$0.isSession } }
     var headline: Bucket? { session ?? buckets.first }
+
+    /// Short caption under the ring's percentage.
+    var ringCaption: String {
+        guard let s = session else { return "" }
+        let l = s.label.lowercased()
+        if l.contains("week") { return "7d" }
+        if let h = l.split(separator: "-").first, let n = Int(h) { return "\(n)h" }
+        return "5h"
+    }
 }
 
 enum ProfileState: Equatable {

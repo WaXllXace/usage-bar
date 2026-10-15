@@ -97,6 +97,8 @@ enum CredentialStore {
     /// every tick is pointless; wait until the Keychain item changes (re-login).
     private static var deadRefreshTokens = Set<String>()
     private static let deadLock = NSLock()
+    private static func isDead(_ rt: String) -> Bool { deadLock.withLock { deadRefreshTokens.contains(rt) } }
+    private static func markDead(_ rt: String) { deadLock.withLock { _ = deadRefreshTokens.insert(rt) } }
 
     static func keychainService(for configDir: String) -> String {
         let home = NSHomeDirectory()
@@ -204,9 +206,8 @@ enum CredentialStore {
                 return Credential(token: creds.accessToken, source: .keychain(service: service), oauth: creds)
             }
             guard allowRefresh else { throw CredError.expired }
-            if let rt = creds.refreshToken {
-                deadLock.lock(); let dead = deadRefreshTokens.contains(rt); deadLock.unlock()
-                if dead { throw CredError.refreshFailed("refresh token expired — run `claude` with this profile and /login") }
+            if let rt = creds.refreshToken, isDead(rt) {
+                throw CredError.refreshFailed("refresh token expired — run `claude` with this profile and /login")
             }
             Log.write("cred[\(profile.id)]: token expired, refreshing")
             do {
@@ -218,7 +219,7 @@ enum CredentialStore {
                 Log.write("cred[\(profile.id)]: refresh failed: \(error.localizedDescription)")
                 if case CredError.refreshFailed(let m) = error, m.localizedCaseInsensitiveContains("expired"),
                    let rt = creds.refreshToken {
-                    deadLock.lock(); deadRefreshTokens.insert(rt); deadLock.unlock()
+                    markDead(rt)
                 }
                 // Maybe the CLI refreshed concurrently and rotated the token: re-read once.
                 if let again = try readKeychain(service: service), again.isFresh {
