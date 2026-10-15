@@ -4,14 +4,13 @@ import ServiceManagement
 struct PopoverView: View {
     static let width: CGFloat = 372
     @EnvironmentObject private var store: Store
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 12) {
             titleBar
             if store.enabledProfiles.isEmpty {
-                Text("All profiles hidden. Enable one in ⚙︎.")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-                    .padding(.vertical, 20)
+                emptyState
             }
             ForEach(store.enabledProfiles) { p in
                 ProfileCard(profile: p)
@@ -28,6 +27,28 @@ struct PopoverView: View {
         .animation(.spring(duration: 0.4), value: store.enabledProfiles.map(\.id))
     }
 
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "person.crop.circle.badge.questionmark")
+                .font(.system(size: 28)).foregroundStyle(.tertiary)
+            Text(store.profiles.isEmpty ? "No logins found" : "All profiles hidden")
+                .font(.system(size: 13, weight: .semibold))
+            Text(store.profiles.isEmpty
+                 ? "Sign in with `claude` or `codex` first, then add the login here."
+                 : "Enable one in ⚙︎ or Manage Profiles.")
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Manage Profiles…") { openProfiles() }
+                .controlSize(.small)
+        }
+        .padding(.vertical, 18)
+    }
+
+    private func openProfiles() {
+        openWindow(id: "profiles")
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     // MARK: Title
 
     private var titleBar: some View {
@@ -35,8 +56,9 @@ struct PopoverView: View {
             Image(systemName: "gauge.with.dots.needle.33percent")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(
-                    LinearGradient(colors: Profile.defaults.map(\.accent), startPoint: .leading, endPoint: .trailing))
-            Text("Claude Usage").font(.system(size: 15, weight: .bold, design: .rounded))
+                    LinearGradient(colors: Palette.colors.prefix(3).compactMap(Color.init(hex:)),
+                                   startPoint: .leading, endPoint: .trailing))
+            Text("Usage Bar").font(.system(size: 15, weight: .bold, design: .rounded))
             Spacer()
             if let t = store.lastRefresh {
                 TimelineView(.periodic(from: .now, by: 5)) { ctx in
@@ -62,9 +84,10 @@ struct PopoverView: View {
             Section("Profiles") {
                 ForEach(store.profiles) { p in
                     Toggle(p.name, isOn: Binding(
-                        get: { store.enabled.contains(p.id) },
+                        get: { p.enabled },
                         set: { _ in store.toggle(p) }))
                 }
+                Button("Manage Profiles…") { openProfiles() }
             }
             Section("Menu bar") {
                 Picker("Style", selection: $store.menuBarMode) {
@@ -79,7 +102,6 @@ struct PopoverView: View {
                 .pickerStyle(.inline)
             }
             Section {
-                Toggle("Auto-refresh expired tokens", isOn: $store.autoRefreshTokens)
                 LaunchAtLoginToggle()
             }
         } label: {
@@ -96,7 +118,7 @@ struct PopoverView: View {
 
     private var footer: some View {
         HStack {
-            Text(store.demo ? "demo data" : "data: Anthropic usage API")
+            Text(store.demo ? "demo data" : "data: Anthropic & OpenAI usage APIs")
                 .font(.system(size: 10)).foregroundStyle(.quaternary)
             Spacer()
             Button("Quit") { NSApp.terminate(nil) }

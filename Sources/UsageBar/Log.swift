@@ -1,11 +1,11 @@
 import Foundation
 import os
 
-/// Appends diagnostics to ~/Library/Logs/ClaudeUsage.log and the unified log
-/// (public, so `log show --predicate 'process == "ClaudeUsage"'` shows them).
+/// Appends diagnostics to ~/Library/Logs/UsageBar.log and the unified log
+/// (public, so `log show --predicate 'process == "UsageBar"'` shows them).
 enum Log {
-    static let path = NSHomeDirectory() + "/Library/Logs/ClaudeUsage.log"
-    private static let logger = Logger(subsystem: "com.wallace.claude-usage", category: "app")
+    static let path = NSHomeDirectory() + "/Library/Logs/UsageBar.log"
+    private static let logger = Logger(subsystem: "com.wallacehsieh.UsageBar", category: "app")
     private static let queue = DispatchQueue(label: "claude-usage.log")
     private static let fmt: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm:ss"; return f

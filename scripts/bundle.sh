@@ -1,16 +1,17 @@
 #!/bin/zsh
-# Build the release binary and assemble "Claude Usage.app" in build/.
+# Build the release binary and assemble "Usage Bar.app" in build/.
 set -e
 ROOT="${0:A:h:h}"
 cd "$ROOT"
+VERSION="${VERSION:-$(cat "$ROOT/VERSION" 2>/dev/null || echo 1.0.0)}"
 
 swift build -c release 2>&1 | tail -3
 
-APP="$ROOT/build/Claude Usage.app"
-BIN="$ROOT/.build/release/ClaudeUsage"
+APP="$ROOT/build/Usage Bar.app"
+BIN="$ROOT/.build/release/UsageBar"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/ClaudeUsage"
+cp "$BIN" "$APP/Contents/MacOS/UsageBar"
 
 # App icon from assets/icon-source.png
 ICON_KEY=""
@@ -29,13 +30,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>            <string>Claude Usage</string>
-    <key>CFBundleDisplayName</key>     <string>Claude Usage</string>
-    <key>CFBundleIdentifier</key>      <string>com.wallace.claude-usage</string>
-    <key>CFBundleExecutable</key>      <string>ClaudeUsage</string>
+    <key>CFBundleName</key>            <string>Usage Bar</string>
+    <key>CFBundleDisplayName</key>     <string>Usage Bar</string>
+    <key>CFBundleIdentifier</key>      <string>com.wallacehsieh.UsageBar</string>
+    <key>CFBundleExecutable</key>      <string>UsageBar</string>
 $ICON_KEY
-    <key>CFBundleVersion</key>         <string>1.0.0</string>
-    <key>CFBundleShortVersionString</key> <string>1.0.0</string>
+    <key>CFBundleVersion</key>         <string>$VERSION</string>
+    <key>CFBundleShortVersionString</key> <string>$VERSION</string>
     <key>CFBundlePackageType</key>     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>  <string>14.0</string>
     <key>LSUIElement</key>             <true/>
@@ -44,5 +45,6 @@ $ICON_KEY
 </plist>
 PLIST
 
-codesign --force --sign - "$APP" >/dev/null 2>&1 || true
-echo "Built: $APP"
+# Ad-hoc signature unless a Developer ID identity is given (SIGN_IDENTITY="Developer ID Application: …").
+codesign --force --deep --sign "${SIGN_IDENTITY:--}" "$APP" >/dev/null 2>&1 || true
+echo "Built: $APP (v$VERSION)"

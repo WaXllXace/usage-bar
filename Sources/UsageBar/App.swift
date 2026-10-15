@@ -9,7 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct ClaudeUsageApp: App {
+struct UsageBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var store: Store
 
@@ -37,6 +37,13 @@ struct ClaudeUsageApp: App {
                 .onAppear { store.start() }
         }
         .menuBarExtraStyle(.window)
+
+        Window("Profiles", id: "profiles") {
+            ProfilesWindow()
+                .environmentObject(store)
+        }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 720, height: 460)
     }
 
     @MainActor
